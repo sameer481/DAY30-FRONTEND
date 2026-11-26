@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Day 30: Redux vs Redux Toolkit Sandbox</title>
+
+  <!-- React 18 & Babel standalone CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #090d16;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --primary: #764abc;
+      --primary-hover: #5d369a;
+      --accent: #10b981;
+      --danger: #ef4444;
+      --purple: #c084fc;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 32px 16px;
+      line-height: 1.6;
+    }
+
+    .container { max-width: 900px; margin: 0 auto; }
+
+    header { text-align: center; margin-bottom: 32px; }
+
+    header h1 {
+      font-size: 2.25rem;
+      background: linear-gradient(135deg, #a78bfa, #c084fc, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .card h2 {
+      font-size: 1.25rem;
+      color: var(--purple);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+      margin-bottom: 16px;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background: var(--primary);
+      border: none;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+
+    button:hover { opacity: 0.9; }
+
+    .btn-danger { background: var(--danger); }
+    .btn-accent { background: var(--accent); }
+
+    .cart-item {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .devtools {
+      background: #050811;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #38bdf8;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Day 30: Redux vs Redux Toolkit Sandbox</h1>
+      <p style="color: var(--muted)">Interactive RTK Store Dispatcher, Actions Log, and State Inspector</p>
+    </header>
+
+    <div id="root"></div>
+  </div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    function ReduxApp() {
+      const [cart, setCart] = useState([
+        { id: 1, name: "Mechanical Keyboard", price: 120 }
+      ]);
+      const [logs, setLogs] = useState([
+        { type: "@@INIT", state: "[Initial State]" }
+      ]);
+
+      const dispatch = (action) => {
+        let nextCart = [...cart];
+        if (action.type === "cart/add") {
+          nextCart.push(action.payload);
+        } else if (action.type === "cart/remove") {
+          nextCart = nextCart.filter(i => i.id !== action.payload);
+        } else if (action.type === "cart/clear") {
+          nextCart = [];
+        }
+        setCart(nextCart);
+        setLogs(prev => [...prev, { type: action.type, payload: action.payload, time: new Date().toLocaleTimeString() }]);
+      };
+
+      const total = cart.reduce((acc, c) => acc + c.price, 0);
+
+      return (
+        <div className="card">
+          <h2>Redux Toolkit (RTK) Slice & DevTools Stream</h2>
+
+          <div className="btn-row">
+            <button className="btn-accent" onClick={() => dispatch({ type: "cart/add", payload: { id: Date.now(), name: "Mousepad", price: 25 } })}>
+              + dispatch(addItem("Mousepad"))
+            </button>
+            <button onClick={() => dispatch({ type: "cart/add", payload: { id: Date.now(), name: "Headset", price: 95 } })}>
+              + dispatch(addItem("Headset"))
+            </button>
+            <button className="btn-danger" onClick={() => dispatch({ type: "cart/clear" })}>
+              dispatch(clearCart)
+            </button>
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <strong>Items in Cart ({cart.length}) — Total: ${total}</strong>
+          </div>
+
+          <div>
+            {cart.map(item => (
+              <div key={item.id} className="cart-item">
+                <span>{item.name} (${item.price})</span>
+                <button className="btn-danger" style={{ padding: '6px 10px', fontSize: '0.8rem' }} onClick={() => dispatch({ type: "cart/remove", payload: item.id })}>
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <h3 style={{ fontSize: '0.95rem', color: '#a78bfa', marginTop: '20px', marginBottom: '8px' }}>
+            Action Stream (Simulated DevTools)
+          </h3>
+          <div className="devtools">
+            {logs.map((l, i) => (
+              <div key={i} style={{ marginBottom: '4px' }}>
+                <span style={{ color: '#94a3b8' }}>[{l.time || 'Start'}]</span> <strong>{l.type}</strong> {l.payload ? `➔ ${JSON.stringify(l.payload)}` : ''}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<ReduxApp />);
+  </script>
+</body>
+</html>
